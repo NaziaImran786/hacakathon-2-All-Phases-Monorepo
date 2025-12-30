@@ -1,0 +1,7 @@
+- [ ] Step 1: Create `src/` folder and `main.py` with the main menu loop (skeletal structure).
+- [ ] Step 2: Implement the `Task` data structure and `add_task` function.
+- [ ] Step 3: Implement `view_tasks` functionality with formatted output.
+- [ ] Step 4: Implement `update_task` and `mark_complete` logic.
+- [ ] Step 5: Implement `delete_task` logic.
+- [ ] Step 6: Add input validation (try/except blocks) for all numeric inputs.
+- [ ] Step 7: Final manual test run.
