@@ -26,6 +26,7 @@ app.include_router(chat_router)
 # CORS Configuration - explicitly allow frontend origin
 # This fixes CORS blocks for Phase III chatbot integration
 origins = [
+    "https://hacakathon-2-all-phases-uock.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
