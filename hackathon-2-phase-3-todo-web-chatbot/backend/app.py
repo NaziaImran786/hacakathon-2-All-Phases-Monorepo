@@ -62,6 +62,10 @@ class SignupResponse(BaseModel):
     """Response model for signup - returns success message only."""
     message: str
 
+@app.get("/")
+async def home():
+    return {"status": "Backend is running successfully!"}
+
 @app.post("/signup", response_model=SignupResponse)
 def signup(user: UserCreate, session: Session = Depends(get_session)):
     """
