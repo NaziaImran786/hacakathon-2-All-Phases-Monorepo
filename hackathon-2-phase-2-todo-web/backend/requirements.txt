@@ -1,4 +1,4 @@
-# T-001, T-002, T-004
+
 fastapi
 uvicorn
 sqlmodel
