@@ -1,0 +1,20 @@
+apiVersion: v2
+name: backend
+description: FlowTask Backend API - FastAPI application with MCP and SQLModel
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - fastapi
+  - backend
+  - api
+  - mcp
+  - sqlmodel
+  - postgresql
+maintainers:
+  - name: FlowTask Team
+    email: team@flowtask.example.com
+home: https://github.com/example/flowtask
+sources:
+  - https://github.com/example/flowtask/backend
+icon: https://fastapi.tiangolo.com/img/icon-white.svg

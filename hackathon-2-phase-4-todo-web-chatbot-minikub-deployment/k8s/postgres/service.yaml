@@ -1,0 +1,107 @@
+# PostgreSQL Service
+# Provides stable DNS name for database access within the cluster
+#
+# DNS Names:
+#   - postgres-service (same namespace)
+#   - postgres-service.default (cross-namespace)
+#   - postgres-service.default.svc.cluster.local (FQDN)
+#
+# Connection String (from backend pods):
+#   postgresql://todouser:password@postgres-service:5432/tododb
+#
+# Deploy:
+#   kubectl apply -f k8s/postgres/service.yaml
+#
+# Verify:
+#   kubectl get service postgres-service
+#   kubectl get endpoints postgres-service
+#   kubectl describe service postgres-service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: default
+  labels:
+    app: postgres
+    component: database
+spec:
+  # ClusterIP: Internal cluster access only (not exposed externally)
+  # This is correct for database services - only backend pods need access
+  type: ClusterIP
+
+  # Selector: Route traffic to pods with these labels
+  selector:
+    app: postgres
+
+  # Ports configuration
+  ports:
+  - name: postgres
+    protocol: TCP
+    port: 5432        # Service port (what clients connect to)
+    targetPort: 5432  # Container port (where PostgreSQL listens)
+
+  # Session affinity: None (stateless connection)
+  # PostgreSQL handles connection state, not Kubernetes
+  sessionAffinity: None
+
+---
+
+# Notes:
+#
+# 1. Service Type (ClusterIP):
+#    - Only accessible within Kubernetes cluster
+#    - NOT exposed to external traffic
+#    - Backend pods connect via: postgres-service:5432
+#    - Frontend should NEVER connect directly to database
+#
+# 2. StatefulSet Headless Service:
+#    - StatefulSet also needs a headless service for stable network identity
+#    - This is defined in serviceName: postgres-service in StatefulSet spec
+#    - Provides DNS: postgres-0.postgres-service.default.svc.cluster.local
+#
+# 3. Connection from Backend:
+#    - Backend pods use DATABASE_URL environment variable
+#    - Format: postgresql://todouser:password@postgres-service:5432/tododb
+#    - Password comes from app-secrets Kubernetes Secret
+#
+# 4. Service Discovery:
+#    - DNS lookup: nslookup postgres-service (from any pod)
+#    - Returns: ClusterIP (e.g., 10.96.123.45)
+#    - Kubernetes automatically updates endpoints as pods change
+#
+# 5. Load Balancing:
+#    - With replicas: 1, no load balancing needed
+#    - With replicas > 1: Service load balances across all postgres pods
+#    - For PostgreSQL replication: Use separate read/write services
+#
+# 6. Testing Connection:
+#    - From within cluster:
+#      kubectl run -it --rm debug --image=postgres:15-alpine --restart=Never -- \
+#        psql -h postgres-service -U todouser -d tododb
+#    - From backend pod:
+#      kubectl exec -it <backend-pod> -- \
+#        python -c "from sqlmodel import create_engine; create_engine('postgresql://todouser:password@postgres-service:5432/tododb').connect()"
+#
+# 7. Monitoring:
+#    - Check service: kubectl get svc postgres-service
+#    - Check endpoints: kubectl get endpoints postgres-service
+#    - Service should have 1 endpoint (postgres-0 pod IP)
+#    - If no endpoints: StatefulSet pod not running or labels mismatch
+#
+# 8. Security:
+#    - Service is ClusterIP (not exposed externally) ✓
+#    - Password stored in Kubernetes Secret ✓
+#    - TLS/SSL: Not configured (optional for production)
+#    - Network policies: Not configured (optional for zero-trust)
+#
+# 9. High Availability:
+#    - Single instance: No HA (acceptable for development)
+#    - Production: Use PostgreSQL streaming replication
+#    - Production: Use managed database (RDS, Cloud SQL, etc.)
+#
+# 10. Troubleshooting:
+#     - No endpoints: kubectl describe service postgres-service
+#     - Check pod labels match selector: kubectl get pods --show-labels
+#     - Test DNS: kubectl exec -it <backend-pod> -- nslookup postgres-service
+#     - Test connection: kubectl exec -it postgres-0 -- psql -U todouser -d tododb
