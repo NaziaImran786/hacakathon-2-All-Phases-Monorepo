@@ -9,6 +9,9 @@ python-dotenv
 passlib
 pydantic
 bcrypt
+asyncpg==0.29.0
+certifi
+greenlet
 
 # Phase III - AI Chatbot
 openai>=1.0.0

@@ -39,13 +39,13 @@ class ChatRequest(BaseModel):
 class TaskResponse(BaseModel):
     """Task data returned in chat responses."""
     id: int
-    user_id: str
     title: str
-    description: Optional[str] = None
     status: str
+    user_id: Optional[str] = None      # <-- Made Optional
+    description: Optional[str] = None
     due_date: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None # <-- Made Optional
+    updated_at: Optional[datetime] = None # <-- Made Optional
 
     model_config = ConfigDict(from_attributes=True)
 

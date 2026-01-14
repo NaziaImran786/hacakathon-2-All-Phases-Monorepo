@@ -1,6 +1,11 @@
-# DB package
-# Export Database class and session utilities
+# DB package exports unified async engine utilities
 
-from .session import Database, get_db, create_db_and_tables, async_engine
+from .database import async_engine, async_session_maker, get_session, init_models
 
-__all__ = ["Database", "get_db", "create_db_and_tables", "async_engine"]
+__all__ = [
+    "async_engine",
+    "async_session_maker",
+    "get_session",
+    "init_models",
+    "Database",
+]
