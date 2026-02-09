@@ -2,7 +2,7 @@
 // Task ID: T021 (Frontend foundation)
 // Reference: specs/features/chatbot/plan.md (JWT Authentication Integration)
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000' ;
 
 export interface ChatResponse {
   success: boolean;
