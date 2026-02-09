@@ -1,0 +1,141 @@
+# Default values for postgres Helm chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of PostgreSQL replicas (usually 1 for development)
+replicaCount: 1
+
+# Docker image configuration
+image:
+  repository: postgres
+  pullPolicy: IfNotPresent
+  tag: "15-alpine"
+
+# Image pull secrets for private registries (if needed)
+imagePullSecrets: []
+
+# Override name
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext: {}
+  # fsGroup: 999  # postgres user group
+
+# Container security context
+securityContext: {}
+  # runAsNonRoot: true
+  # runAsUser: 999  # postgres user
+  # capabilities:
+  #   drop:
+  #   - ALL
+
+# Kubernetes Service configuration
+service:
+  type: ClusterIP  # Only internal cluster access
+  port: 5432
+  targetPort: 5432
+  # annotations: {}
+
+# Resource limits and requests
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Persistent storage configuration
+persistence:
+  enabled: true
+  # Storage class name (use 'standard' for Minikube)
+  storageClassName: standard
+  # Access mode
+  accessModes:
+    - ReadWriteOnce
+  # Storage size
+  size: 10Gi
+  # Annotations for PVC
+  annotations: {}
+
+# PostgreSQL configuration
+postgresql:
+  # Database name
+  database: tododb
+  # Database user
+  username: todouser
+  # Database password (MUST be changed in production)
+  # Generate with: openssl rand -base64 16
+  password: "changeme"
+  # PGDATA subdirectory (required to avoid 'lost+found' conflict)
+  pgdata: /var/lib/postgresql/data/pgdata
+
+# Health check configuration
+healthCheck:
+  liveness:
+    enabled: true
+    command:
+      - /bin/sh
+      - -c
+      - pg_isready -U $(echo $POSTGRES_USER) -d $(echo $POSTGRES_DB)
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+  readiness:
+    enabled: true
+    command:
+      - /bin/sh
+      - -c
+      - pg_isready -U $(echo $POSTGRES_USER) -d $(echo $POSTGRES_DB)
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+
+# Secrets configuration
+secrets:
+  enabled: true
+  name: postgres-secret
+  # If using external secret (created manually), set to false
+  create: true
+
+# Additional labels
+labels: {}
+
+# Additional environment variables
+extraEnv: []
+  # - name: POSTGRES_INITDB_ARGS
+  #   value: "--encoding=UTF8"
+
+# Init containers (for custom initialization)
+initContainers: []
+
+# Backup configuration (optional)
+backup:
+  enabled: false
+  # Schedule in cron format
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  # Retention policy (days)
+  retention: 7

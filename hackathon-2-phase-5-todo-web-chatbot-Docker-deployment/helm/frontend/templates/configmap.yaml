@@ -1,0 +1,12 @@
+{{- if .Values.configMap.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "frontend.configMapName" . }}
+  labels:
+    {{- include "frontend.labels" . | nindent 4 }}
+data:
+  # Backend API URL
+  # This is injected as NEXT_PUBLIC_API_URL environment variable
+  api-url: {{ .Values.env.NEXT_PUBLIC_API_URL | quote }}
+{{- end }}

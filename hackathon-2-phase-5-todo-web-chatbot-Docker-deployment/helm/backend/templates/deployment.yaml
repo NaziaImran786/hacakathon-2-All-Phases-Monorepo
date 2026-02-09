@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "backend.fullname" . }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  strategy:
+    {{- toYaml .Values.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "backend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "backend.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "backend.secretName" . }}
+              key: database-url
+        # Ye naya block add karein:
+        - name: DATABASE_URL_ASYNC
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "backend.secretName" . }}
+              key: database-url-async
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "backend.secretName" . }}
+              key: jwt-secret
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "backend.secretName" . }}
+              key: openai-api-key
+        {{- with .Values.envFrom }}
+        envFrom:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- if .Values.healthCheck.liveness.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.healthCheck.liveness.path }}
+            port: {{ .Values.healthCheck.liveness.port }}
+          initialDelaySeconds: {{ .Values.healthCheck.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.liveness.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthCheck.liveness.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthCheck.liveness.failureThreshold }}
+          successThreshold: {{ .Values.healthCheck.liveness.successThreshold }}
+        {{- end }}
+        {{- if .Values.healthCheck.readiness.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.healthCheck.readiness.path }}
+            port: {{ .Values.healthCheck.readiness.port }}
+          initialDelaySeconds: {{ .Values.healthCheck.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.readiness.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthCheck.readiness.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthCheck.readiness.failureThreshold }}
+          successThreshold: {{ .Values.healthCheck.readiness.successThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,176 @@
+# PostgreSQL StatefulSet with Persistent Storage
+# Ensures data persists across pod restarts and redeployments
+#
+# Key Features:
+# - StatefulSet (not Deployment) for stable network identity
+# - PersistentVolumeClaim (10Gi) for data persistence
+# - postgres:15-alpine for minimal footprint
+# - Resource limits to prevent runaway usage
+# - Credentials from Kubernetes Secret
+#
+# Prerequisites:
+#   - postgres-secret must exist: kubectl create secret generic postgres-secret --from-literal=password='YOUR_PASSWORD'
+#   - Storage class 'standard' available (default in Minikube)
+#
+# Deploy:
+#   kubectl apply -f k8s/postgres/statefulset.yaml
+#
+# Verify:
+#   kubectl get statefulsets
+#   kubectl get pods -l app=postgres
+#   kubectl get pvc
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: default
+  labels:
+    app: postgres
+    component: database
+    version: "15"
+spec:
+  serviceName: postgres-service  # Must match Service name for stable DNS
+  replicas: 1  # Single instance for development (use replication for production)
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        component: database
+        version: "15"
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+
+        env:
+        # Database name
+        - name: POSTGRES_DB
+          value: "tododb"
+
+        # Database user
+        - name: POSTGRES_USER
+          value: "todouser"
+
+        # Database password from secret
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+
+        # Data directory (must be subdirectory for proper permissions)
+        # Without /pgdata suffix, PostgreSQL fails with 'lost+found' error
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+
+        # Volume mount for persistent storage
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+          subPath: ""  # Empty to use entire volume
+
+        # Resource limits
+        resources:
+          requests:
+            cpu: "250m"      # 0.25 CPU cores
+            memory: "256Mi"  # 256 MiB RAM
+          limits:
+            cpu: "500m"      # 0.5 CPU cores max
+            memory: "512Mi"  # 512 MiB RAM max
+
+        # Liveness probe - restart if PostgreSQL stops responding
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U todouser -d tododb
+          initialDelaySeconds: 30  # Wait 30s for PostgreSQL to start
+          periodSeconds: 10        # Check every 10s
+          timeoutSeconds: 5        # 5s timeout
+          failureThreshold: 3      # Restart after 3 failures
+
+        # Readiness probe - route traffic only when ready
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U todouser -d tododb
+          initialDelaySeconds: 10  # Start checking after 10s
+          periodSeconds: 5         # Check every 5s
+          timeoutSeconds: 3        # 3s timeout
+          failureThreshold: 3      # Mark unready after 3 failures
+
+  # Volume Claim Templates - creates PVC for each pod
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+      labels:
+        app: postgres
+        component: database
+    spec:
+      accessModes:
+      - ReadWriteOnce  # Single node read-write (RWO)
+
+      # Storage class - 'standard' is default in Minikube
+      # Uses hostPath provisioner in Minikube
+      storageClassName: standard
+
+      resources:
+        requests:
+          storage: 10Gi  # 10 GiB persistent storage
+
+      # Optional: Volume mode (default is Filesystem)
+      # volumeMode: Filesystem
+
+---
+
+# Notes:
+#
+# 1. StatefulSet vs Deployment:
+#    - StatefulSet provides stable network identity (postgres-0)
+#    - Ordered, graceful deployment and scaling
+#    - Stable persistent storage (PVC follows pod)
+#
+# 2. PersistentVolumeClaim:
+#    - Created automatically by volumeClaimTemplates
+#    - Named: postgres-storage-postgres-0
+#    - Survives pod deletion and recreation
+#    - Must be manually deleted if StatefulSet is deleted
+#
+# 3. PGDATA subdirectory:
+#    - MUST use /pgdata suffix to avoid 'lost+found' directory conflict
+#    - PostgreSQL fails if data directory contains lost+found
+#
+# 4. Scaling:
+#    - For development: replicas: 1 (single instance)
+#    - For production: Consider PostgreSQL replication (streaming/logical)
+#    - Scaling StatefulSet creates additional PVCs (postgres-storage-postgres-1, etc.)
+#
+# 5. Backup Strategy:
+#    - Consider pg_dump for logical backups
+#    - Consider volume snapshots for physical backups
+#    - Store backups outside cluster
+#
+# 6. Monitoring:
+#    - Check pod status: kubectl get pods -l app=postgres
+#    - View logs: kubectl logs postgres-0
+#    - Check PVC: kubectl get pvc postgres-storage-postgres-0
+#    - Describe for events: kubectl describe statefulset postgres
+#
+# 7. Troubleshooting:
+#    - If pod stuck in Pending: Check PVC status (kubectl get pvc)
+#    - If CrashLoopBackOff: Check logs (kubectl logs postgres-0)
+#    - If PVC not binding: Check storage class (kubectl get storageclass)
+#    - Test connection: kubectl exec -it postgres-0 -- psql -U todouser -d tododb

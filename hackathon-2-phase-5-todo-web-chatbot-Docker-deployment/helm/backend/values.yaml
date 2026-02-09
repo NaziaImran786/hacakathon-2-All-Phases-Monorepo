@@ -1,0 +1,168 @@
+# Default values for backend Helm chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of backend pod replicas
+replicaCount: 1
+
+# Docker image configuration
+image:
+  repository: backend
+  pullPolicy: IfNotPresent  # Use Never for Minikube, IfNotPresent for registry
+  tag: "v1"
+
+# Image pull secrets for private registries (if needed)
+imagePullSecrets: []
+
+# Override name
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext: {}
+  # fsGroup: 2000
+
+# Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+
+# Kubernetes Service configuration
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+  # annotations: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: backend.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+# Resource limits and requests
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Autoscaling configuration
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Update strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+# Health check configuration
+healthCheck:
+  liveness:
+    enabled: true
+    path: /
+    port: 8000
+    initialDelaySeconds: 40
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+  readiness:
+    enabled: true
+    path: /
+    port: 8000
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+
+# Environment variables
+env:
+  # Database connection string
+  # Override this in production with actual credentials
+  DATABASE_URL: "postgresql://todouser:changeme@postgres-service:5432/tododb"
+
+  # JWT secret key for token signing
+  # MUST be changed in production - generate with: openssl rand -hex 32
+  JWT_SECRET_KEY: "your-secret-key-change-in-production"
+
+  # OpenAI API key for AI features
+  # Get from: https://platform.openai.com/api-keys
+  OPENAI_API_KEY: "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"
+
+# Secrets configuration
+# If enabled, creates a Kubernetes Secret from env values
+# If disabled, you must create app-secrets manually
+secrets:
+  enabled: true
+  name: app-secrets
+  # If using external secret (created manually), set to false
+  create: true
+
+# Pod disruption budget (for high availability)
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Additional labels
+labels: {}
+
+# Additional environment variables from existing secrets/configmaps
+envFrom: []
+  # - secretRef:
+  #     name: external-secret
+  # - configMapRef:
+  #     name: external-config
+
+
+# values.yaml ke aakhir mein ye add karein
+config:
+  dbUrl: "postgresql://neondb_owner:npg_K8PsevGq1iJD@ep-old-tree-a4er6vea-pooler.us-east-1.aws.neon.tech/neondb"
+  authSecret: "NaziaHackathon2025!@#" # auth.py wala secret yahan likhein

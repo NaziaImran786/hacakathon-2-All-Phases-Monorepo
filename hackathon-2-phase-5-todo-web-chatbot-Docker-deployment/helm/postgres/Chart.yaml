@@ -1,0 +1,18 @@
+apiVersion: v2
+name: postgres
+description: PostgreSQL database with persistent storage for FlowTask
+type: application
+version: 1.0.0
+appVersion: "15"
+keywords:
+  - postgresql
+  - database
+  - statefulset
+  - persistent-storage
+maintainers:
+  - name: FlowTask Team
+    email: team@flowtask.example.com
+home: https://www.postgresql.org/
+sources:
+  - https://github.com/postgres/postgres
+icon: https://www.postgresql.org/media/img/about/press/elephant.png
