@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-=======
+
 # FlowTask - AI-Powered Productivity Dashboard
 
 A modern, stateless Todo application featuring an integrated AI Assistant powered by OpenAI and MCP (Model Context Protocol). FlowTask combines intuitive task management with intelligent AI assistance, allowing users to create, organize, and complete tasks using natural language commands.
